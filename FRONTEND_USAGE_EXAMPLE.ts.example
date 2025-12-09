@@ -1,0 +1,170 @@
+// Example: How to use the backend API from your frontend
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+// Helper function to call backend API
+async function callGeminiAPI<T>(endpoint: string, data: any): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}/api/gemini/${endpoint}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'API request failed');
+  }
+
+  return response.json();
+}
+
+// Example 1: Generate images
+export const generateImages = async (
+  sourceImage: { base64: string; mimeType: string },
+  prompt: string,
+  renderType: 'exterior' | 'interior' | 'floorplan' | 'masterplan',
+  count: number = 1,
+  aspectRatio: string = 'Auto',
+  options: {
+    referenceImage?: { base64: string; mimeType: string } | null;
+    isAnglePrompt?: boolean;
+    useRawPrompt?: boolean;
+    modelTier?: 'free' | 'pro';
+    quality?: '1K' | '2K' | '4K';
+  } = {},
+): Promise<string[]> => {
+  const result = await callGeminiAPI<{ images: string[] }>('generate-images', {
+    sourceImage,
+    prompt,
+    renderType,
+    count,
+    aspectRatio,
+    ...options,
+  });
+  return result.images;
+};
+
+// Example 2: Describe interior image
+export const describeInteriorImage = async (sourceImage: {
+  base64: string;
+  mimeType: string;
+}): Promise<string> => {
+  const result = await callGeminiAPI<{ description: string }>(
+    'describe-interior',
+    { sourceImage },
+  );
+  return result.description;
+};
+
+// Example 3: Upscale image
+export const upscaleImage = async (
+  sourceImage: { base64: string; mimeType: string },
+  target: '2k' | '4k',
+  model: 'flash' | 'pro' = 'flash',
+): Promise<string | null> => {
+  const result = await callGeminiAPI<{ image: string | null }>(
+    'upscale-image',
+    {
+      sourceImage,
+      target,
+      model,
+    },
+  );
+  return result.image;
+};
+
+// Example 4: Generate video
+export const generateVideo = async (
+  prompt: string,
+  sourceImage?: { base64: string; mimeType: string } | null,
+): Promise<string> => {
+  const result = await callGeminiAPI<{ operationId: string }>(
+    'generate-video',
+    {
+      prompt,
+      sourceImage: sourceImage || null,
+    },
+  );
+  return result.operationId;
+};
+
+// Example 5: Check video status
+export const checkVideoStatus = async (
+  operationId: string,
+): Promise<{ done: boolean; videoUrl?: string }> => {
+  const response = await fetch(
+    `${API_BASE_URL}/api/gemini/check-video-status?operationId=${encodeURIComponent(operationId)}`,
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to check video status');
+  }
+
+  return response.json();
+};
+
+// Example 6: Generate mood images
+export const generateMoodImages = async (sourceImage: {
+  base64: string;
+  mimeType: string;
+}): Promise<string[]> => {
+  const result = await callGeminiAPI<{ images: string[] }>('mood-images', {
+    sourceImage,
+  });
+  return result.images;
+};
+
+// Example 7: Edit image with mask
+export const editImage = async (
+  sourceImage: { base64: string; mimeType: string },
+  maskImage: { base64: string; mimeType: string },
+  prompt: string,
+): Promise<string | null> => {
+  const result = await callGeminiAPI<{ image: string | null }>('edit-image', {
+    sourceImage,
+    maskImage,
+    prompt,
+  });
+  return result.image;
+};
+
+// Example 8: Generate prompts from image
+export const generatePromptsFromImage = async (sourceImage: {
+  base64: string;
+  mimeType: string;
+}): Promise<{ medium: string[]; closeup: string[]; interior: string[] }> => {
+  return callGeminiAPI('generate-prompts', { sourceImage });
+};
+
+// Example 9: Virtual tour
+export const generateVirtualTourImage = async (
+  sourceImage: { base64: string; mimeType: string },
+  moveType:
+    | 'pan-left'
+    | 'pan-right'
+    | 'pan-up'
+    | 'pan-down'
+    | 'orbit-left'
+    | 'orbit-right'
+    | 'zoom-in'
+    | 'zoom-out',
+  magnitude: number,
+): Promise<string | null> => {
+  const result = await callGeminiAPI<{ image: string | null }>('virtual-tour', {
+    sourceImage,
+    moveType,
+    magnitude,
+  });
+  return result.image;
+};
+
+// Example 10: Health check
+export const checkHealth = async (): Promise<{
+  status: string;
+  timestamp: string;
+}> => {
+  const response = await fetch(`${API_BASE_URL}/api/gemini/health`);
+  return response.json();
+};
