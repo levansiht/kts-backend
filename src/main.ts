@@ -8,14 +8,12 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
 
-  // Enable CORS with specific origin
   app.enableCors({
-    origin: configService.get('CORS_ORIGIN') || 'http://localhost:5173',
+    origin: configService.get('CORS_ORIGIN') || 'http://localhost:3000',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });
 
-  // Global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -27,7 +25,6 @@ async function bootstrap() {
     }),
   );
 
-  // Global prefix for all routes
   app.setGlobalPrefix('');
 
   const port = configService.get('PORT') || 3001;
