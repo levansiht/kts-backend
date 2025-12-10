@@ -25,4 +25,3 @@ export class RegisterDto {
   @MaxLength(100, { message: 'Last name must not exceed 100 characters' })
   lastName?: string;
 }
-

@@ -37,6 +37,7 @@ import {
 import { Public } from '../auth/decorators/public.decorator';
 
 @Controller('api/gemini')
+@Public()
 @UsePipes(new ValidationPipe({ transform: true }))
 export class GeminiController {
   constructor(private readonly geminiService: GeminiService) {}
@@ -221,7 +222,9 @@ export class GeminiController {
   @Post('perspective-prompts')
   @HttpCode(HttpStatus.OK)
   async generatePerspectivePrompts(@Body() dto: GeneratePerspectivePromptsDto) {
-    const prompts = await this.geminiService.generatePerspectivePrompts(dto.sourceImage);
+    const prompts = await this.geminiService.generatePerspectivePrompts(
+      dto.sourceImage,
+    );
     return prompts;
   }
 
@@ -251,7 +254,9 @@ export class GeminiController {
   @Post('analyze-masterplan')
   @HttpCode(HttpStatus.OK)
   async analyzeMasterplan(@Body() dto: AnalyzeMasterplanDto) {
-    const description = await this.geminiService.analyzeMasterplan(dto.sourceImage);
+    const description = await this.geminiService.analyzeMasterplan(
+      dto.sourceImage,
+    );
     return { description };
   }
 

@@ -2,6 +2,8 @@ import {
   Injectable,
   UnauthorizedException,
   ConflictException,
+  BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -13,6 +15,8 @@ import { JwtPayload } from './strategies/jwt.strategy';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
@@ -21,6 +25,11 @@ export class AuthService {
 
   async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
     try {
+      // Validate email format
+      if (!this.isValidEmail(registerDto.email)) {
+        throw new BadRequestException('Invalid email format');
+      }
+
       const user = await this.userService.create(
         registerDto.email,
         registerDto.password,
@@ -35,6 +44,8 @@ export class AuthService {
 
       const accessToken = this.generateAccessToken(payload);
 
+      this.logger.log(`User registered successfully: ${user.email}`);
+
       return {
         accessToken,
         user: {
@@ -45,45 +56,65 @@ export class AuthService {
         },
       };
     } catch (error) {
-      if (error instanceof ConflictException) {
+      if (
+        error instanceof ConflictException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
-      throw new Error('Failed to register user');
+      this.logger.error(`Registration failed: ${error.message}`);
+      throw new BadRequestException(
+        'Failed to register user. Please try again.',
+      );
     }
   }
 
   async login(loginDto: LoginDto): Promise<AuthResponseDto> {
-    const user = await this.userService.findByEmail(loginDto.email);
+    try {
+      const user = await this.userService.findByEmail(loginDto.email);
 
-    if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
+      if (!user) {
+        throw new UnauthorizedException('Invalid email or password');
+      }
 
-    const isPasswordValid = await this.userService.validatePassword(
-      loginDto.password,
-      user.password,
-    );
+      if (!user.isActive) {
+        throw new UnauthorizedException('Account has been deactivated');
+      }
 
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
+      const isPasswordValid = await this.userService.validatePassword(
+        loginDto.password,
+        user.password,
+      );
 
-    const payload: JwtPayload = {
-      sub: user.id,
-      email: user.email,
-    };
+      if (!isPasswordValid) {
+        throw new UnauthorizedException('Invalid email or password');
+      }
 
-    const accessToken = this.generateAccessToken(payload);
-
-    return {
-      accessToken,
-      user: {
-        id: user.id,
+      const payload: JwtPayload = {
+        sub: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-      },
-    };
+      };
+
+      const accessToken = this.generateAccessToken(payload);
+
+      this.logger.log(`User logged in successfully: ${user.email}`);
+
+      return {
+        accessToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+        },
+      };
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      this.logger.error(`Login failed: ${error.message}`);
+      throw new BadRequestException('Failed to login. Please try again.');
+    }
   }
 
   private generateAccessToken(payload: JwtPayload): string {
@@ -92,7 +123,16 @@ export class AuthService {
   }
 
   async validateUser(userId: string) {
-    return this.userService.findById(userId);
+    try {
+      return this.userService.findById(userId);
+    } catch (error) {
+      this.logger.error(`User validation failed: ${error.message}`);
+      return null;
+    }
+  }
+
+  private isValidEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   }
 }
-

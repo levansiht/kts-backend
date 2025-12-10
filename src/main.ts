@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { json, urlencoded } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 
@@ -7,6 +8,10 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const configService = app.get(ConfigService);
+
+  // Increase body size limits to allow large base64 images from frontend
+  app.use(json({ limit: '50mb' }));
+  app.use(urlencoded({ limit: '50mb', extended: true }));
 
   app.enableCors({
     origin: configService.get('CORS_ORIGIN') || 'http://localhost:3000',

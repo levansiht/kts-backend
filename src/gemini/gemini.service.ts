@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenAI, Modality, Type } from '@google/genai';
 import type { GenerateContentResponse } from '@google/genai';
@@ -58,7 +58,9 @@ export class GeminiService {
     return closest.name;
   }
 
-  private async getImageDimensions(sourceImage: SourceImageDto): Promise<{width: number, height: number}> {
+  private async getImageDimensions(
+    sourceImage: SourceImageDto,
+  ): Promise<{ width: number; height: number }> {
     return new Promise((resolve, reject) => {
       // For backend, we'll use a simple approach - return default dimensions
       // In a real implementation, you might want to use a library like sharp or jimp
@@ -135,108 +137,113 @@ export class GeminiService {
       quality = '1K',
     } = params;
 
-    const generationPromises = Array(count)
-      .fill(0)
-      .map(async () => {
-        const textPart = { text: prompt };
-        const parts: any[] = [
-          {
-            inlineData: {
-              data: sourceImage.base64,
-              mimeType: sourceImage.mimeType,
+    try {
+      const generationPromises = Array(count)
+        .fill(0)
+        .map(async () => {
+          const textPart = { text: prompt };
+          const parts: any[] = [
+            {
+              inlineData: {
+                data: sourceImage.base64,
+                mimeType: sourceImage.mimeType,
+              },
             },
-          },
-        ];
+          ];
 
-        if (referenceImage) {
-          parts.push({
-            inlineData: {
-              data: referenceImage.base64,
-              mimeType: referenceImage.mimeType,
-            },
-          });
-        }
-
-        if (useRawPrompt) {
-          // Use the prompt as-is
-        } else if (isAnglePrompt) {
-          let subject: string;
-          let sketchType: string;
-          switch (renderType) {
-            case 'exterior':
-              subject = 'building';
-              sketchType = 'architectural sketch';
-              break;
-            case 'interior':
-              subject = 'room';
-              sketchType = 'interior sketch';
-              break;
-            case 'masterplan':
-              subject = 'masterplan';
-              sketchType = '3D render';
-              break;
-            case 'floorplan':
-              subject = 'room';
-              sketchType = '3D interior render';
-              break;
-            default:
-              subject = 'room';
-              sketchType = 'interior sketch';
-              break;
-          }
-          textPart.text = `The user wants to change the camera angle of the provided ${sketchType}. Render the exact same ${subject} from the image, but from this new perspective: "${prompt}". The prompt's main goal is to define the camera shot, not to add new content to the scene.`;
-        } else if (renderType === 'masterplan') {
-          textPart.text = `You are an expert 3D architectural visualizer specializing in large-scale masterplans. Your task is to convert the provided 2D masterplan drawing into a photorealistic 3D aerial or bird's-eye view render. The user's request for the specific camera angle and mood is: "${prompt}". Create a beautiful and realistic image based on these instructions, accurately representing the layout of buildings, landscapes, roads, and water bodies.`;
-        } else if (renderType === 'floorplan') {
           if (referenceImage) {
-            textPart.text = `The user's prompt is: "${prompt}". You are an expert 3D architectural visualizer. Your task is to convert the provided 2D floorplan (first image) into a photorealistic 3D interior render. You MUST adhere strictly to the layout from the floorplan. The second image is a reference for style ONLY. You must apply the mood, lighting, materials, and color palette from this second image to the room generated from the floorplan. It is forbidden to copy any structural elements or furniture layout from the style reference image. The final render should be from a human-eye level perspective inside the room.`;
+            parts.push({
+              inlineData: {
+                data: referenceImage.base64,
+                mimeType: referenceImage.mimeType,
+              },
+            });
+          }
+
+          if (useRawPrompt) {
+            // Use the prompt as-is
+          } else if (isAnglePrompt) {
+            let subject: string;
+            let sketchType: string;
+            switch (renderType) {
+              case 'exterior':
+                subject = 'building';
+                sketchType = 'architectural sketch';
+                break;
+              case 'interior':
+                subject = 'room';
+                sketchType = 'interior sketch';
+                break;
+              case 'masterplan':
+                subject = 'masterplan';
+                sketchType = '3D render';
+                break;
+              case 'floorplan':
+                subject = 'room';
+                sketchType = '3D interior render';
+                break;
+              default:
+                subject = 'room';
+                sketchType = 'interior sketch';
+                break;
+            }
+            textPart.text = `The user wants to change the camera angle of the provided ${sketchType}. Render the exact same ${subject} from the image, but from this new perspective: "${prompt}". The prompt's main goal is to define the camera shot, not to add new content to the scene.`;
+          } else if (renderType === 'masterplan') {
+            textPart.text = `You are an expert 3D architectural visualizer specializing in large-scale masterplans. Your task is to convert the provided 2D masterplan drawing into a photorealistic 3D aerial or bird's-eye view render. The user's request for the specific camera angle and mood is: "${prompt}". Create a beautiful and realistic image based on these instructions, accurately representing the layout of buildings, landscapes, roads, and water bodies.`;
+          } else if (renderType === 'floorplan') {
+            if (referenceImage) {
+              textPart.text = `The user's prompt is: "${prompt}". You are an expert 3D architectural visualizer. Your task is to convert the provided 2D floorplan (first image) into a photorealistic 3D interior render. You MUST adhere strictly to the layout from the floorplan. The second image is a reference for style ONLY. You must apply the mood, lighting, materials, and color palette from this second image to the room generated from the floorplan. It is forbidden to copy any structural elements or furniture layout from the style reference image. The final render should be from a human-eye level perspective inside the room.`;
+            } else {
+              textPart.text = `You are an expert 3D architectural visualizer. Your task is to convert the provided 2D floorplan image into a photorealistic 3D interior render, viewed from a human-eye level perspective inside the room. Adhere strictly to the layout, dimensions, and placement of walls, doors, and windows as shown in the floorplan. The user's request is: "${prompt}". Create a beautiful and realistic image based on these instructions.`;
+            }
+          } else if (referenceImage) {
+            const subjectType = renderType === 'exterior' ? 'building' : 'room';
+            const shotType =
+              renderType === 'exterior' ? 'exterior shot' : 'interior shot';
+            textPart.text = `The user's prompt is: "${prompt}". You are creating a realistic architectural render. The first image is the architectural sketch. You MUST use the exact structure, form, and layout from this first sketch. The second image is a reference for style ONLY. You must apply the mood, lighting, and color palette from the second image to the ${subjectType} from the first sketch. It is forbidden to copy any shapes, objects, architectural elements, or scene composition (like window frames or foreground elements) from the second style-reference image. The final render must be an ${shotType} based on the user's prompt.`;
+          } else if (renderType === 'interior') {
+            textPart.text = `You are an expert 3D architectural visualizer specializing in photorealistic interior renders. Your task is to convert the provided interior design sketch or image into a high-quality, realistic photograph. The user's specific request is: "${prompt}". Create a beautiful and realistic image based on these instructions, paying close attention to materials, lighting, and atmosphere to achieve a convincing result.`;
           } else {
-            textPart.text = `You are an expert 3D architectural visualizer. Your task is to convert the provided 2D floorplan image into a photorealistic 3D interior render, viewed from a human-eye level perspective inside the room. Adhere strictly to the layout, dimensions, and placement of walls, doors, and windows as shown in the floorplan. The user's request is: "${prompt}". Create a beautiful and realistic image based on these instructions.`;
+            textPart.text = prompt;
           }
-        } else if (referenceImage) {
-          const subjectType = renderType === 'exterior' ? 'building' : 'room';
-          const shotType =
-            renderType === 'exterior' ? 'exterior shot' : 'interior shot';
-          textPart.text = `The user's prompt is: "${prompt}". You are creating a realistic architectural render. The first image is the architectural sketch. You MUST use the exact structure, form, and layout from this first sketch. The second image is a reference for style ONLY. You must apply the mood, lighting, and color palette from the second image to the ${subjectType} from the first sketch. It is forbidden to copy any shapes, objects, architectural elements, or scene composition (like window frames or foreground elements) from the second style-reference image. The final render must be an ${shotType} based on the user's prompt.`;
-        } else if (renderType === 'interior') {
-          textPart.text = `You are an expert 3D architectural visualizer specializing in photorealistic interior renders. Your task is to convert the provided interior design sketch or image into a high-quality, realistic photograph. The user's specific request is: "${prompt}". Create a beautiful and realistic image based on these instructions, paying close attention to materials, lighting, and atmosphere to achieve a convincing result.`;
-        } else {
-          textPart.text = prompt;
-        }
 
-        const modelName =
-          modelTier === 'pro'
-            ? 'gemini-3-pro-image-preview'
-            : 'gemini-2.5-flash-image';
-        const config: Record<string, any> = {
-          responseModalities: [Modality.IMAGE],
-        };
-
-        if (modelTier === 'pro') {
-          (config as any).imageConfig = {
-            imageSize: quality,
+          const modelName =
+            modelTier === 'pro'
+              ? 'gemini-3-pro-image-preview'
+              : 'gemini-2.5-flash-image';
+          const config: Record<string, any> = {
+            responseModalities: [Modality.IMAGE],
           };
-          if (aspectRatio && aspectRatio !== 'Auto') {
-            (config as any).imageConfig.aspectRatio = aspectRatio;
-          }
-        } else {
-          if (aspectRatio && aspectRatio !== 'Auto') {
-            textPart.text += `. The final image must have a ${aspectRatio} aspect ratio`;
-          }
-        }
 
-        parts.push(textPart);
+          if (modelTier === 'pro') {
+            (config as any).imageConfig = {
+              imageSize: quality,
+            };
+            if (aspectRatio && aspectRatio !== 'Auto') {
+              (config as any).imageConfig.aspectRatio = aspectRatio;
+            }
+          } else {
+            if (aspectRatio && aspectRatio !== 'Auto') {
+              textPart.text += `. The final image must have a ${aspectRatio} aspect ratio`;
+            }
+          }
 
-        const response = await this.ai.models.generateContent({
-          model: modelName,
-          contents: { parts },
-          config: config as any,
+          parts.push(textPart);
+
+          const response = await this.ai.models.generateContent({
+            model: modelName,
+            contents: { parts },
+            config: config as any,
+          });
+          return this.extractBase64Image(response);
         });
-        return this.extractBase64Image(response);
-      });
 
-    const results = await Promise.all(generationPromises);
-    return results.filter((result): result is string => result !== null);
+      const results = await Promise.all(generationPromises);
+      return results.filter((result): result is string => result !== null);
+    } catch (error) {
+      this.handleGeminiError(error);
+      return [];
+    }
   }
 
   async upscaleImage(params: {
@@ -477,7 +484,12 @@ export class GeminiService {
     magnitude: number;
     modelConfig?: { usePro: boolean; resolution: '1K' | '2K' | '4K' };
   }): Promise<string | null> {
-    const { sourceImage, moveType, magnitude, modelConfig = { usePro: false, resolution: '2K' } } = params;
+    const {
+      sourceImage,
+      moveType,
+      magnitude,
+      modelConfig = { usePro: false, resolution: '2K' },
+    } = params;
 
     const magnitudeText =
       {
@@ -676,12 +688,17 @@ export class GeminiService {
     prompt: string;
     modelConfig?: { usePro: boolean; resolution: '1K' | '2K' | '4K' };
   }): Promise<string | null> {
-    const { roomImage, furnitureImage, prompt, modelConfig = { usePro: false, resolution: '2K' } } = params;
-    
+    const {
+      roomImage,
+      furnitureImage,
+      prompt,
+      modelConfig = { usePro: false, resolution: '2K' },
+    } = params;
+
     const engineeredPrompt = `You are an expert interior designer. I have two images: 1) An empty room, and 2) A piece of furniture or a set of furniture. Your task is to realistically place the furniture from the second image into the empty room in the first image. 
     User instruction: "${prompt}".
     Ensure the perspective, lighting, shadows, and scale are perfectly matched to the room. The result must be a photorealistic interior photograph.`;
-    
+
     const results = await this.generateImages({
       sourceImage: roomImage,
       prompt: engineeredPrompt,
@@ -693,7 +710,7 @@ export class GeminiService {
       modelTier: modelConfig.usePro ? 'pro' : 'free',
       quality: modelConfig.resolution,
     });
-    
+
     return results.length > 0 ? results[0] : null;
   }
 
@@ -703,12 +720,17 @@ export class GeminiService {
     prompt: string;
     modelConfig?: { usePro: boolean; resolution: '1K' | '2K' | '4K' };
   }): Promise<string | null> {
-    const { sourceImage, referenceImage, prompt, modelConfig = { usePro: false, resolution: '2K' } } = params;
-    
+    const {
+      sourceImage,
+      referenceImage,
+      prompt,
+      modelConfig = { usePro: false, resolution: '2K' },
+    } = params;
+
     const engineeredPrompt = `You are an expert architectural visualizer. Your task is to modify the materials or colors in the provided image based on the user's request.
      User instruction: "${prompt}".
      Keep the geometry, lighting, and composition exactly the same. Only change the surface materials/colors as requested. The result must be photorealistic.`;
-     
+
     const results = await this.generateImages({
       sourceImage,
       prompt: engineeredPrompt,
@@ -720,7 +742,7 @@ export class GeminiService {
       modelTier: modelConfig.usePro ? 'pro' : 'free',
       quality: modelConfig.resolution,
     });
-    
+
     return results.length > 0 ? results[0] : null;
   }
 
@@ -730,8 +752,13 @@ export class GeminiService {
     prompt: string;
     modelConfig?: { usePro: boolean; resolution: '1K' | '2K' | '4K' };
   }): Promise<string | null> {
-    const { sourceImage, referenceImage, prompt, modelConfig = { usePro: false, resolution: '2K' } } = params;
-    
+    const {
+      sourceImage,
+      referenceImage,
+      prompt,
+      modelConfig = { usePro: false, resolution: '2K' },
+    } = params;
+
     const engineeredPrompt = `You are an expert image editor. I have two images: 
     1) A source image containing a scene.
     2) A reference image containing a specific object/model.
@@ -756,7 +783,7 @@ export class GeminiService {
       modelTier: modelConfig.usePro ? 'pro' : 'free',
       quality: modelConfig.resolution,
     });
-    
+
     return results.length > 0 ? results[0] : null;
   }
 
@@ -766,8 +793,13 @@ export class GeminiService {
     prompt: string;
     modelConfig?: { usePro: boolean; resolution: '1K' | '2K' | '4K' };
   }): Promise<string | null> {
-    const { siteImage, buildingImage, prompt, modelConfig = { usePro: false, resolution: '2K' } } = params;
-    
+    const {
+      siteImage,
+      buildingImage,
+      prompt,
+      modelConfig = { usePro: false, resolution: '2K' },
+    } = params;
+
     const engineeredPrompt = `You are an expert architectural visualizer. I have two images: 1) A site photo (current state), and 2) A photo or render of a building/house.
     Your task is to realistically insert the building from the second image into the site shown in the first image.
     User instruction: "${prompt}".
@@ -784,7 +816,7 @@ export class GeminiService {
       modelTier: modelConfig.usePro ? 'pro' : 'free',
       quality: modelConfig.resolution,
     });
-    
+
     return results.length > 0 ? results[0] : null;
   }
 
@@ -804,17 +836,22 @@ export class GeminiService {
       model: 'gemini-2.5-flash',
       contents: {
         parts: [
-          { inlineData: { data: sourceImage.base64, mimeType: sourceImage.mimeType } },
+          {
+            inlineData: {
+              data: sourceImage.base64,
+              mimeType: sourceImage.mimeType,
+            },
+          },
           { text: engineeredPrompt },
         ],
       },
       config: {
-        responseMimeType: "application/json",
-      }
+        responseMimeType: 'application/json',
+      },
     });
-    
+
     try {
-      const jsonText = response.text ? response.text.trim() : "{}";
+      const jsonText = response.text ? response.text.trim() : '{}';
       const cleanJson = jsonText.replace(/```json|```/g, '');
       const parsed = JSON.parse(cleanJson);
       return {
@@ -822,8 +859,8 @@ export class GeminiService {
         canCanh: parsed.canCanh || [],
         noiThat: parsed.noiThat || [],
       };
-    } catch(e) {
-      this.logger.error("Failed to parse prompts JSON", e);
+    } catch (e) {
+      this.logger.error('Failed to parse prompts JSON', e);
       return { trungCanh: [], canCanh: [], noiThat: [] };
     }
   }
@@ -834,8 +871,13 @@ export class GeminiService {
     prompt: string;
     modelConfig?: { usePro: boolean; resolution: '1K' | '2K' | '4K' };
   }): Promise<string | null> {
-    const { sceneImage, characterImage, prompt, modelConfig = { usePro: false, resolution: '2K' } } = params;
-    
+    const {
+      sceneImage,
+      characterImage,
+      prompt,
+      modelConfig = { usePro: false, resolution: '2K' },
+    } = params;
+
     const engineeredPrompt = `You are an expert image editor. I have a scene image (1st image) and a character image (2nd image).
      Your task is to realisticially place the character from the 2nd image into the scene of the 1st image.
      Context/Action: "${prompt}".
@@ -852,7 +894,7 @@ export class GeminiService {
       modelTier: modelConfig.usePro ? 'pro' : 'free',
       quality: modelConfig.resolution,
     });
-    
+
     return results.length > 0 ? results[0] : null;
   }
 
@@ -862,7 +904,7 @@ export class GeminiService {
     roomStyle: string;
   }): Promise<string> {
     const { sourceImage, roomType, roomStyle } = params;
-    
+
     const prompt = `Đóng vai kiến trúc sư, hãy phân tích mặt bằng này để viết prompt render 3D thật TỐI ƯU và NGẮN GỌN.
     Thông tin: Phòng "${roomType}", phong cách "${roomStyle}".
     
@@ -877,13 +919,18 @@ export class GeminiService {
       model: 'gemini-2.5-flash',
       contents: {
         parts: [
-          { inlineData: { data: sourceImage.base64, mimeType: sourceImage.mimeType } },
+          {
+            inlineData: {
+              data: sourceImage.base64,
+              mimeType: sourceImage.mimeType,
+            },
+          },
           { text: prompt },
         ],
       },
     });
 
-    return response.text || "";
+    return response.text || '';
   }
 
   async analyzeMasterplan(sourceImage: SourceImageDto): Promise<string> {
@@ -898,13 +945,18 @@ export class GeminiService {
       model: 'gemini-2.5-flash',
       contents: {
         parts: [
-          { inlineData: { data: sourceImage.base64, mimeType: sourceImage.mimeType } },
+          {
+            inlineData: {
+              data: sourceImage.base64,
+              mimeType: sourceImage.mimeType,
+            },
+          },
           { text: prompt },
         ],
       },
     });
 
-    return response.text || "";
+    return response.text || '';
   }
 
   async colorizeFloorplan(params: {
@@ -912,8 +964,12 @@ export class GeminiService {
     stylePrompt: string;
     modelConfig?: { usePro: boolean; resolution: '1K' | '2K' | '4K' };
   }): Promise<string[]> {
-    const { sourceImage, stylePrompt, modelConfig = { usePro: false, resolution: '2K' } } = params;
-    
+    const {
+      sourceImage,
+      stylePrompt,
+      modelConfig = { usePro: false, resolution: '2K' },
+    } = params;
+
     const prompt = `You are an expert architectural illustrator. I have a 2D floorplan drawing (lines, black and white). 
     Your task is to colorize this floorplan based on the following style: "${stylePrompt}".
     
@@ -934,5 +990,24 @@ export class GeminiService {
       modelTier: modelConfig.usePro ? 'pro' : 'free',
       quality: modelConfig.resolution,
     });
+  }
+
+  private handleGeminiError(error: any): never {
+    const status = error?.error?.status || error?.status || error?.code;
+    if (status === 'UNAVAILABLE' || status === 503) {
+      this.logger.warn('Gemini API overloaded (503) - retry later');
+      throw new HttpException(
+        'Gemini model đang quá tải. Vui lòng thử lại sau ít phút.',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
+    if (status === 'INTERNAL' || status === 500) {
+      this.logger.error('Gemini API internal error (500)', error);
+      throw new HttpException(
+        'Gemini gặp lỗi nội bộ. Vui lòng thử lại sau ít phút.',
+        HttpStatus.BAD_GATEWAY,
+      );
+    }
+    throw error;
   }
 }

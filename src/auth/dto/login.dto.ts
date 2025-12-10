@@ -8,4 +8,3 @@ export class LoginDto {
   @MinLength(1, { message: 'Password is required' })
   password: string;
 }
-

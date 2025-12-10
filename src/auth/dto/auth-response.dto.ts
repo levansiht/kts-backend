@@ -7,4 +7,3 @@ export class AuthResponseDto {
     lastName: string | null;
   };
 }
-

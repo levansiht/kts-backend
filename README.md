@@ -1,53 +1,158 @@
 # KTS Backend - NestJS API Server
 
-Backend API server cho ứng dụng KTS, sử dụng NestJS và Google Gemini AI.
+Backend API server cho ứng dụng KTS với PostgreSQL, Authentication, Payment Gateway và Google Gemini AI.
 
-## 🚀 Tính năng
+## ✨ Tính năng mới
 
-- ✅ RESTful API cho tất cả các chức năng Gemini AI
-- ✅ Bảo mật API key (không lộ trên client)
-- ✅ Validation dữ liệu đầu vào
-- ✅ Error handling toàn cục
-- ✅ Logging requests
-- ✅ CORS configuration
+### 🗄️ Database
+
+- ✅ PostgreSQL database với Docker
+- ✅ TypeORM for database management
+- ✅ Database migrations
+- ✅ Proper indexing và optimization
+
+### 🔐 Authentication & Authorization
+
+- ✅ JWT-based authentication
+- ✅ User registration và login
+- ✅ Password hashing với bcrypt
+- ✅ Protected routes
+- ✅ Email validation
+
+### 💳 Payment Integration
+
+- ✅ Sepay payment gateway integration
+- ✅ Transaction management
+- ✅ Balance tracking
+- ✅ Webhook handler
+- ✅ Transaction history
+
+### 📊 History Tracking
+
+- ✅ Track all Gemini API calls
+- ✅ Cost tracking per action
+- ✅ Performance metrics
+- ✅ Filter và search
+- ✅ Statistics dashboard
+
+### 👤 User Profile
+
+- ✅ Profile management
+- ✅ Change password
+- ✅ Update email
+- ✅ Avatar support
+- ✅ Balance viewing
+
+### 🎨 Gemini AI Features
+
+- ✅ RESTful API cho Gemini AI
+- ✅ Multiple generation endpoints
+- ✅ Image processing
+- ✅ Error handling
+- ✅ History integration ready
+
+### 🛡️ Security & Best Practices
+
 - ✅ Environment variables
+- ✅ Input validation
+- ✅ Global error handling
+- ✅ Request logging
+- ✅ CORS configuration
 - ✅ TypeScript strict mode
+- ✅ Type-safe code
 
-## 📦 Cài đặt
+## 📚 Documentation
+
+- 📖 [Quick Start Guide](QUICK_START.md) - Bắt đầu nhanh trong 5 phút
+- 📖 [Migration Guide](MIGRATION_GUIDE.md) - Hướng dẫn chi tiết về migration
+- 📖 [API Documentation](API_DOCUMENTATION.md) - Tài liệu API đầy đủ
+- 📖 [Implementation Summary](IMPLEMENTATION_SUMMARY.md) - Tổng quan implementation
+
+## 🚀 Quick Start
 
 ```bash
-# Cài đặt dependencies
+# 1. Install dependencies
 npm install
 
-# Copy file môi trường
+# 2. Start PostgreSQL
+docker-compose up -d
+
+# 3. Setup environment
 cp .env.example .env
+# Edit .env with your values
+
+# 4. Start development server
+npm run start:dev
 ```
 
-## ⚙️ Cấu hình
+Server chạy tại `http://localhost:3001`
 
-Chỉnh sửa file `.env`:
+## 📦 Tech Stack
 
-```env
-GEMINI_API_KEY=your_actual_gemini_api_key
-PORT=3001
-CORS_ORIGIN=http://localhost:5173
-NODE_ENV=development
+- **Framework**: NestJS 11
+- **Database**: PostgreSQL 16
+- **ORM**: TypeORM 0.3
+- **Authentication**: JWT + Passport
+- **Validation**: class-validator
+- **AI**: Google Gemini AI
+- **Payment**: Sepay Integration
+- **Language**: TypeScript 5
+
+## 🗂️ Project Structure
+
+```
+kts-backend/
+├── src/
+│   ├── auth/           # Authentication module
+│   │   ├── guards/     # JWT guards
+│   │   ├── strategies/ # Passport strategies
+│   │   └── dto/        # Auth DTOs
+│   ├── user/           # User management
+│   │   ├── entities/   # User entity
+│   │   └── dto/        # User DTOs
+│   ├── payment/        # Payment module
+│   │   ├── entities/   # Transaction entity
+│   │   └── dto/        # Payment DTOs
+│   ├── history/        # History tracking
+│   │   ├── entities/   # History entity
+│   │   └── dto/        # History DTOs
+│   ├── gemini/         # Gemini AI integration
+│   ├── common/         # Shared code
+│   │   ├── filters/    # Exception filters
+│   │   ├── interceptors/ # Interceptors
+│   │   ├── interfaces/ # Interfaces
+│   │   ├── helpers/    # Helper utilities
+│   │   └── enums/      # Enums
+│   └── config/         # Configuration
+├── docker-compose.yml  # PostgreSQL setup
+├── .env.example        # Environment template
+└── package.json        # Dependencies
 ```
 
-## 🏃 Chạy ứng dụng
+## 🔧 Available Scripts
 
 ```bash
-# Development mode
-npm run start:dev
+# Development
+npm run start:dev       # Start with hot-reload
 
-# Production mode
-npm run build
-npm run start:prod
+# Build
+npm run build          # Build for production
+npm run start:prod     # Start production
+
+# Database
+npm run migration:generate  # Generate migration
+npm run migration:run       # Run migrations
+npm run migration:revert    # Revert migration
+
+# Code Quality
+npm run lint           # ESLint
+npm run format         # Prettier
+
+# Testing
+npm run test          # Unit tests
+npm run test:e2e      # E2E tests
+npm run test:cov      # Coverage
 ```
-
-## 📡 API Endpoints
-
-### Health Check
 
 - `GET /api/gemini/health` - Kiểm tra trạng thái server
 
@@ -59,70 +164,202 @@ npm run start:prod
 ### Image Generation
 
 - `POST /api/gemini/generate-images` - Tạo ảnh từ sketch
-- `POST /api/gemini/generate-from-text` - Tạo ảnh từ text
-- `POST /api/gemini/mood-images` - Tạo ảnh với các mood khác nhau
-- `POST /api/gemini/virtual-tour` - Tạo ảnh virtual tour
 
-### Image Processing
+## 📡 API Endpoints Overview
 
-- `POST /api/gemini/upscale-image` - Upscale ảnh lên 2K/4K
-- `POST /api/gemini/edit-image` - Chỉnh sửa ảnh với mask
+### Authentication
 
-### Prompt Generation
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - User login
+- `POST /api/auth/logout` - User logout
+- `GET /api/auth/me` - Get current user
 
-- `POST /api/gemini/generate-prompts` - Tạo prompts từ ảnh
-- `POST /api/gemini/completion-prompts` - Tạo prompts hoàn thiện công trình
-- `POST /api/gemini/interior-completion-prompts` - Tạo prompts hoàn thiện nội thất
+### User Profile
 
-### Video Generation
+- `GET /api/user/profile` - Get user profile
+- `PUT /api/user/profile` - Update profile
+- `POST /api/user/change-password` - Change password
+- `POST /api/user/update-email` - Update email
+- `GET /api/user/balance` - Get account balance
 
-- `POST /api/gemini/generate-video` - Tạo video
-- `GET /api/gemini/check-video-status` - Kiểm tra trạng thái video
+### Payment
 
-## 🏗️ Cấu trúc thư mục
+- `POST /api/payment/deposit` - Create deposit request
+- `GET /api/payment/transactions` - Get transaction history
+- `GET /api/payment/transactions/:id` - Get transaction detail
+- `POST /api/payment/webhook/sepay` - Sepay webhook
 
+### History
+
+- `GET /api/history` - Get API usage history
+- `GET /api/history/statistics` - Get usage statistics
+- `GET /api/history/:id` - Get history detail
+- `DELETE /api/history/:id` - Delete history
+
+### Gemini AI (Existing)
+
+- `POST /api/gemini/*` - All existing Gemini endpoints
+
+**👉 See [API_DOCUMENTATION.md](API_DOCUMENTATION.md) for complete API reference**
+
+## 🗄️ Database Schema
+
+### Users
+
+- Basic info (email, password, name)
+- Balance management
+- Profile settings (phone, avatar)
+- Account status
+
+### Transactions
+
+- Payment records
+- Balance history
+- Sepay integration
+- Metadata tracking
+
+### Gemini Histories
+
+- API call tracking
+- Cost per action
+- Performance metrics
+- Success/failure rates
+
+## ⚙️ Environment Variables
+
+```env
+# Application
+NODE_ENV=development
+PORT=3001
+
+# Database
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=kts_user
+DB_PASSWORD=kts_password
+DB_DATABASE=kts_database
+
+# JWT
+JWT_SECRET=your-secret-key
+JWT_EXPIRES_IN=7d
+
+# Gemini AI
+GEMINI_API_KEY=your-gemini-api-key
+
+# CORS
+CORS_ORIGIN=http://localhost:3000
+
+# Sepay (Optional)
+SEPAY_API_KEY=
+SEPAY_API_SECRET=
+SEPAY_ACCOUNT_NUMBER=
+SEPAY_WEBHOOK_SECRET=
 ```
-src/
-├── common/
-│   ├── dto/              # Data Transfer Objects dùng chung
-│   ├── filters/          # Exception filters
-│   └── interceptors/     # Interceptors
-├── gemini/
-│   ├── dto/              # Gemini-specific DTOs
-│   ├── gemini.controller.ts
-│   ├── gemini.service.ts
-│   └── gemini.module.ts
-├── app.module.ts
-└── main.ts
-```
 
-## 🔒 Bảo mật
+## 🔒 Security
 
-- API key được lưu trữ an toàn trong biến môi trường
-- Validation đầu vào với class-validator
-- CORS được cấu hình chỉ cho phép origin cụ thể
-- Error handling không lộ thông tin nhạy cảm
+- ✅ JWT authentication
+- ✅ Password hashing (bcrypt)
+- ✅ Input validation
+- ✅ CORS configuration
+- ✅ Environment variables
+- ✅ No sensitive data in errors
+- ✅ Database transactions
+- ✅ Prepared statements (SQL injection prevention)
 
-## 📝 Best Practices
+## 🚢 Deployment
 
-1. **Dependency Injection**: Sử dụng DI pattern của NestJS
-2. **DTO Validation**: Tất cả input đều được validate
-3. **Error Handling**: Global exception filter xử lý lỗi
-4. **Logging**: Request logging với interceptor
-5. **Configuration**: Environment-based configuration
-6. **Type Safety**: TypeScript strict mode
-
-## 🚢 Deploy
-
-### Vercel
+### Local Development
 
 ```bash
-# Thêm environment variables trong Vercel dashboard
-# Deploy
-vercel --prod
+docker-compose up -d
+npm run start:dev
 ```
 
-### Railway/Render
+### Production
+
+1. **Build the application**
+
+```bash
+npm run build
+```
+
+2. **Setup PostgreSQL** (Railway, Supabase, AWS RDS, etc.)
+
+3. **Set environment variables**
+
+```bash
+NODE_ENV=production
+DB_HOST=your-db-host
+DB_PORT=5432
+# ... other vars
+```
+
+4. **Run migrations**
+
+```bash
+npm run migration:run
+```
+
+5. **Start server**
+
+```bash
+npm run start:prod
+```
+
+### Docker Deployment
+
+```bash
+# Build image
+docker build -t kts-backend .
+
+# Run container
+docker run -p 3001:3001 \
+  -e NODE_ENV=production \
+  -e DB_HOST=your-db-host \
+  kts-backend
+```
+
+## 🧪 Testing
+
+```bash
+# Unit tests
+npm run test
+
+# E2E tests
+npm run test:e2e
+
+# Coverage
+npm run test:cov
+```
+
+## 📊 Monitoring
+
+- Request logging với LoggingInterceptor
+- Error tracking với AllExceptionsFilter
+- Performance metrics trong history
+- Transaction tracking
+
+## 🤝 Contributing
+
+1. Create feature branch
+2. Write tests
+3. Follow coding standards
+4. Submit pull request
+
+## 📄 License
+
+Private - All rights reserved
+
+## 👥 Support
+
+- 📧 Email: support@kts.com
+- 📖 Documentation: See docs folder
+- 🐛 Issues: GitHub Issues
+
+---
+
+**Made with ❤️ using NestJS**
 
 ```bash
 # Set environment variables
