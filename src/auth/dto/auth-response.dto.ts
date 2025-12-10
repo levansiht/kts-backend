@@ -1,6 +1,6 @@
 export class AuthResponseDto {
-  accessToken: string;
-  user: {
+  accessToken!: string;
+  user!: {
     id: string;
     email: string;
     firstName: string | null;

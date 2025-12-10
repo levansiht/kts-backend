@@ -13,32 +13,32 @@ import { SourceImageDto } from '../../common/dto/source-image.dto';
 export class DescribeInteriorImageDto {
   @ValidateNested()
   @Type(() => SourceImageDto)
-  sourceImage: SourceImageDto;
+  sourceImage!: SourceImageDto;
 }
 
 export class DescribeMasterplanImageDto {
   @ValidateNested()
   @Type(() => SourceImageDto)
-  sourceImage: SourceImageDto;
+  sourceImage!: SourceImageDto;
 }
 
 export class GenerateImagesDto {
   @ValidateNested()
   @Type(() => SourceImageDto)
-  sourceImage: SourceImageDto;
+  sourceImage!: SourceImageDto;
 
   @IsNotEmpty()
   @IsString()
-  prompt: string;
+  prompt!: string;
 
   @IsEnum(['exterior', 'interior', 'floorplan', 'masterplan'])
-  renderType: 'exterior' | 'interior' | 'floorplan' | 'masterplan';
+  renderType!: 'exterior' | 'interior' | 'floorplan' | 'masterplan';
 
   @IsNumber()
-  count: number;
+  count!: number;
 
   @IsString()
-  aspectRatio: string;
+  aspectRatio!: string;
 
   @IsOptional()
   @ValidateNested()
@@ -65,10 +65,10 @@ export class GenerateImagesDto {
 export class UpscaleImageDto {
   @ValidateNested()
   @Type(() => SourceImageDto)
-  sourceImage: SourceImageDto;
+  sourceImage!: SourceImageDto;
 
   @IsEnum(['2k', '4k'])
-  target: '2k' | '4k';
+  target!: '2k' | '4k';
 
   @IsOptional()
   @IsEnum(['flash', 'pro'])
@@ -78,33 +78,33 @@ export class UpscaleImageDto {
 export class EditImageDto {
   @ValidateNested()
   @Type(() => SourceImageDto)
-  sourceImage: SourceImageDto;
+  sourceImage!: SourceImageDto;
 
   @ValidateNested()
   @Type(() => SourceImageDto)
-  maskImage: SourceImageDto;
+  maskImage!: SourceImageDto;
 
   @IsNotEmpty()
   @IsString()
-  prompt: string;
+  prompt!: string;
 }
 
 export class GenerateImageFromTextDto {
   @IsNotEmpty()
   @IsString()
-  prompt: string;
+  prompt!: string;
 }
 
 export class GeneratePromptsFromImageDto {
   @ValidateNested()
   @Type(() => SourceImageDto)
-  sourceImage: SourceImageDto;
+  sourceImage!: SourceImageDto;
 }
 
 export class GenerateVideoDto {
   @IsNotEmpty()
   @IsString()
-  prompt: string;
+  prompt!: string;
 
   @IsOptional()
   @ValidateNested()
@@ -115,13 +115,13 @@ export class GenerateVideoDto {
 export class CheckVideoStatusDto {
   @IsNotEmpty()
   @IsString()
-  operationId: string;
+  operationId!: string;
 }
 
 export class GenerateVirtualTourImageDto {
   @ValidateNested()
   @Type(() => SourceImageDto)
-  sourceImage: SourceImageDto;
+  sourceImage!: SourceImageDto;
 
   @IsEnum([
     'pan-left',
@@ -133,7 +133,7 @@ export class GenerateVirtualTourImageDto {
     'zoom-in',
     'zoom-out',
   ])
-  moveType:
+  moveType!:
     | 'pan-left'
     | 'pan-right'
     | 'pan-up'
@@ -144,7 +144,7 @@ export class GenerateVirtualTourImageDto {
     | 'zoom-out';
 
   @IsNumber()
-  magnitude: number;
+  magnitude!: number;
 
   @IsOptional()
   modelConfig?: { usePro: boolean; resolution: '1K' | '2K' | '4K' };
@@ -153,33 +153,33 @@ export class GenerateVirtualTourImageDto {
 export class GenerateMoodImagesDto {
   @ValidateNested()
   @Type(() => SourceImageDto)
-  sourceImage: SourceImageDto;
+  sourceImage!: SourceImageDto;
 }
 
 export class GenerateCompletionPromptsDto {
   @ValidateNested()
   @Type(() => SourceImageDto)
-  sourceImage: SourceImageDto;
+  sourceImage!: SourceImageDto;
 }
 
 export class GenerateInteriorCompletionPromptsDto {
   @ValidateNested()
   @Type(() => SourceImageDto)
-  sourceImage: SourceImageDto;
+  sourceImage!: SourceImageDto;
 }
 
 export class MergeFurnitureDto {
   @ValidateNested()
   @Type(() => SourceImageDto)
-  roomImage: SourceImageDto;
+  roomImage!: SourceImageDto;
 
   @ValidateNested()
   @Type(() => SourceImageDto)
-  furnitureImage: SourceImageDto;
+  furnitureImage!: SourceImageDto;
 
   @IsNotEmpty()
   @IsString()
-  prompt: string;
+  prompt!: string;
 
   @IsOptional()
   modelConfig?: { usePro: boolean; resolution: '1K' | '2K' | '4K' };
@@ -188,7 +188,7 @@ export class MergeFurnitureDto {
 export class ChangeMaterialDto {
   @ValidateNested()
   @Type(() => SourceImageDto)
-  sourceImage: SourceImageDto;
+  sourceImage!: SourceImageDto;
 
   @IsOptional()
   @ValidateNested()
@@ -197,7 +197,7 @@ export class ChangeMaterialDto {
 
   @IsNotEmpty()
   @IsString()
-  prompt: string;
+  prompt!: string;
 
   @IsOptional()
   modelConfig?: { usePro: boolean; resolution: '1K' | '2K' | '4K' };
@@ -206,15 +206,15 @@ export class ChangeMaterialDto {
 export class ReplaceModelInImageDto {
   @ValidateNested()
   @Type(() => SourceImageDto)
-  sourceImage: SourceImageDto;
+  sourceImage!: SourceImageDto;
 
   @ValidateNested()
   @Type(() => SourceImageDto)
-  referenceImage: SourceImageDto;
+  referenceImage!: SourceImageDto;
 
   @IsNotEmpty()
   @IsString()
-  prompt: string;
+  prompt!: string;
 
   @IsOptional()
   modelConfig?: { usePro: boolean; resolution: '1K' | '2K' | '4K' };
@@ -223,15 +223,15 @@ export class ReplaceModelInImageDto {
 export class InsertBuildingIntoSiteDto {
   @ValidateNested()
   @Type(() => SourceImageDto)
-  siteImage: SourceImageDto;
+  siteImage!: SourceImageDto;
 
   @ValidateNested()
   @Type(() => SourceImageDto)
-  buildingImage: SourceImageDto;
+  buildingImage!: SourceImageDto;
 
   @IsNotEmpty()
   @IsString()
-  prompt: string;
+  prompt!: string;
 
   @IsOptional()
   modelConfig?: { usePro: boolean; resolution: '1K' | '2K' | '4K' };
@@ -240,21 +240,21 @@ export class InsertBuildingIntoSiteDto {
 export class GeneratePerspectivePromptsDto {
   @ValidateNested()
   @Type(() => SourceImageDto)
-  sourceImage: SourceImageDto;
+  sourceImage!: SourceImageDto;
 }
 
 export class AddCharacterToSceneDto {
   @ValidateNested()
   @Type(() => SourceImageDto)
-  sceneImage: SourceImageDto;
+  sceneImage!: SourceImageDto;
 
   @ValidateNested()
   @Type(() => SourceImageDto)
-  characterImage: SourceImageDto;
+  characterImage!: SourceImageDto;
 
   @IsNotEmpty()
   @IsString()
-  prompt: string;
+  prompt!: string;
 
   @IsOptional()
   modelConfig?: { usePro: boolean; resolution: '1K' | '2K' | '4K' };
@@ -263,31 +263,31 @@ export class AddCharacterToSceneDto {
 export class AnalyzeFloorplanDto {
   @ValidateNested()
   @Type(() => SourceImageDto)
-  sourceImage: SourceImageDto;
+  sourceImage!: SourceImageDto;
 
   @IsNotEmpty()
   @IsString()
-  roomType: string;
+  roomType!: string;
 
   @IsNotEmpty()
   @IsString()
-  roomStyle: string;
+  roomStyle!: string;
 }
 
 export class AnalyzeMasterplanDto {
   @ValidateNested()
   @Type(() => SourceImageDto)
-  sourceImage: SourceImageDto;
+  sourceImage!: SourceImageDto;
 }
 
 export class ColorizeFloorplanDto {
   @ValidateNested()
   @Type(() => SourceImageDto)
-  sourceImage: SourceImageDto;
+  sourceImage!: SourceImageDto;
 
   @IsNotEmpty()
   @IsString()
-  stylePrompt: string;
+  stylePrompt!: string;
 
   @IsOptional()
   modelConfig?: { usePro: boolean; resolution: '1K' | '2K' | '4K' };
