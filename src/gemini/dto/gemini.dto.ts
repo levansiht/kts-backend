@@ -145,6 +145,9 @@ export class GenerateVirtualTourImageDto {
 
   @IsNumber()
   magnitude: number;
+
+  @IsOptional()
+  modelConfig?: { usePro: boolean; resolution: '1K' | '2K' | '4K' };
 }
 
 export class GenerateMoodImagesDto {
@@ -163,4 +166,129 @@ export class GenerateInteriorCompletionPromptsDto {
   @ValidateNested()
   @Type(() => SourceImageDto)
   sourceImage: SourceImageDto;
+}
+
+export class MergeFurnitureDto {
+  @ValidateNested()
+  @Type(() => SourceImageDto)
+  roomImage: SourceImageDto;
+
+  @ValidateNested()
+  @Type(() => SourceImageDto)
+  furnitureImage: SourceImageDto;
+
+  @IsNotEmpty()
+  @IsString()
+  prompt: string;
+
+  @IsOptional()
+  modelConfig?: { usePro: boolean; resolution: '1K' | '2K' | '4K' };
+}
+
+export class ChangeMaterialDto {
+  @ValidateNested()
+  @Type(() => SourceImageDto)
+  sourceImage: SourceImageDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => SourceImageDto)
+  referenceImage?: SourceImageDto | null;
+
+  @IsNotEmpty()
+  @IsString()
+  prompt: string;
+
+  @IsOptional()
+  modelConfig?: { usePro: boolean; resolution: '1K' | '2K' | '4K' };
+}
+
+export class ReplaceModelInImageDto {
+  @ValidateNested()
+  @Type(() => SourceImageDto)
+  sourceImage: SourceImageDto;
+
+  @ValidateNested()
+  @Type(() => SourceImageDto)
+  referenceImage: SourceImageDto;
+
+  @IsNotEmpty()
+  @IsString()
+  prompt: string;
+
+  @IsOptional()
+  modelConfig?: { usePro: boolean; resolution: '1K' | '2K' | '4K' };
+}
+
+export class InsertBuildingIntoSiteDto {
+  @ValidateNested()
+  @Type(() => SourceImageDto)
+  siteImage: SourceImageDto;
+
+  @ValidateNested()
+  @Type(() => SourceImageDto)
+  buildingImage: SourceImageDto;
+
+  @IsNotEmpty()
+  @IsString()
+  prompt: string;
+
+  @IsOptional()
+  modelConfig?: { usePro: boolean; resolution: '1K' | '2K' | '4K' };
+}
+
+export class GeneratePerspectivePromptsDto {
+  @ValidateNested()
+  @Type(() => SourceImageDto)
+  sourceImage: SourceImageDto;
+}
+
+export class AddCharacterToSceneDto {
+  @ValidateNested()
+  @Type(() => SourceImageDto)
+  sceneImage: SourceImageDto;
+
+  @ValidateNested()
+  @Type(() => SourceImageDto)
+  characterImage: SourceImageDto;
+
+  @IsNotEmpty()
+  @IsString()
+  prompt: string;
+
+  @IsOptional()
+  modelConfig?: { usePro: boolean; resolution: '1K' | '2K' | '4K' };
+}
+
+export class AnalyzeFloorplanDto {
+  @ValidateNested()
+  @Type(() => SourceImageDto)
+  sourceImage: SourceImageDto;
+
+  @IsNotEmpty()
+  @IsString()
+  roomType: string;
+
+  @IsNotEmpty()
+  @IsString()
+  roomStyle: string;
+}
+
+export class AnalyzeMasterplanDto {
+  @ValidateNested()
+  @Type(() => SourceImageDto)
+  sourceImage: SourceImageDto;
+}
+
+export class ColorizeFloorplanDto {
+  @ValidateNested()
+  @Type(() => SourceImageDto)
+  sourceImage: SourceImageDto;
+
+  @IsNotEmpty()
+  @IsString()
+  stylePrompt: string;
+
+  @IsOptional()
+  modelConfig?: { usePro: boolean; resolution: '1K' | '2K' | '4K' };
 }

@@ -24,7 +24,17 @@ import {
   GenerateMoodImagesDto,
   GenerateCompletionPromptsDto,
   GenerateInteriorCompletionPromptsDto,
+  MergeFurnitureDto,
+  ChangeMaterialDto,
+  ReplaceModelInImageDto,
+  InsertBuildingIntoSiteDto,
+  GeneratePerspectivePromptsDto,
+  AddCharacterToSceneDto,
+  AnalyzeFloorplanDto,
+  AnalyzeMasterplanDto,
+  ColorizeFloorplanDto,
 } from './dto/gemini.dto';
+import { Public } from '../auth/decorators/public.decorator';
 
 @Controller('api/gemini')
 @UsePipes(new ValidationPipe({ transform: true }))
@@ -128,6 +138,7 @@ export class GeminiController {
       sourceImage: dto.sourceImage,
       moveType: dto.moveType,
       magnitude: dto.magnitude,
+      modelConfig: dto.modelConfig,
     });
     return { image };
   }
@@ -159,7 +170,104 @@ export class GeminiController {
     return { prompts };
   }
 
+  @Post('merge-furniture')
+  @HttpCode(HttpStatus.OK)
+  async mergeFurniture(@Body() dto: MergeFurnitureDto) {
+    const image = await this.geminiService.mergeFurniture({
+      roomImage: dto.roomImage,
+      furnitureImage: dto.furnitureImage,
+      prompt: dto.prompt,
+      modelConfig: dto.modelConfig,
+    });
+    return { image };
+  }
+
+  @Post('change-material')
+  @HttpCode(HttpStatus.OK)
+  async changeMaterial(@Body() dto: ChangeMaterialDto) {
+    const image = await this.geminiService.changeMaterial({
+      sourceImage: dto.sourceImage,
+      referenceImage: dto.referenceImage,
+      prompt: dto.prompt,
+      modelConfig: dto.modelConfig,
+    });
+    return { image };
+  }
+
+  @Post('replace-model')
+  @HttpCode(HttpStatus.OK)
+  async replaceModelInImage(@Body() dto: ReplaceModelInImageDto) {
+    const image = await this.geminiService.replaceModelInImage({
+      sourceImage: dto.sourceImage,
+      referenceImage: dto.referenceImage,
+      prompt: dto.prompt,
+      modelConfig: dto.modelConfig,
+    });
+    return { image };
+  }
+
+  @Post('insert-building')
+  @HttpCode(HttpStatus.OK)
+  async insertBuildingIntoSite(@Body() dto: InsertBuildingIntoSiteDto) {
+    const image = await this.geminiService.insertBuildingIntoSite({
+      siteImage: dto.siteImage,
+      buildingImage: dto.buildingImage,
+      prompt: dto.prompt,
+      modelConfig: dto.modelConfig,
+    });
+    return { image };
+  }
+
+  @Post('perspective-prompts')
+  @HttpCode(HttpStatus.OK)
+  async generatePerspectivePrompts(@Body() dto: GeneratePerspectivePromptsDto) {
+    const prompts = await this.geminiService.generatePerspectivePrompts(dto.sourceImage);
+    return prompts;
+  }
+
+  @Post('add-character')
+  @HttpCode(HttpStatus.OK)
+  async addCharacterToScene(@Body() dto: AddCharacterToSceneDto) {
+    const image = await this.geminiService.addCharacterToScene({
+      sceneImage: dto.sceneImage,
+      characterImage: dto.characterImage,
+      prompt: dto.prompt,
+      modelConfig: dto.modelConfig,
+    });
+    return { image };
+  }
+
+  @Post('analyze-floorplan')
+  @HttpCode(HttpStatus.OK)
+  async analyzeFloorplan(@Body() dto: AnalyzeFloorplanDto) {
+    const description = await this.geminiService.analyzeFloorplan({
+      sourceImage: dto.sourceImage,
+      roomType: dto.roomType,
+      roomStyle: dto.roomStyle,
+    });
+    return { description };
+  }
+
+  @Post('analyze-masterplan')
+  @HttpCode(HttpStatus.OK)
+  async analyzeMasterplan(@Body() dto: AnalyzeMasterplanDto) {
+    const description = await this.geminiService.analyzeMasterplan(dto.sourceImage);
+    return { description };
+  }
+
+  @Post('colorize-floorplan')
+  @HttpCode(HttpStatus.OK)
+  async colorizeFloorplan(@Body() dto: ColorizeFloorplanDto) {
+    const images = await this.geminiService.colorizeFloorplan({
+      sourceImage: dto.sourceImage,
+      stylePrompt: dto.stylePrompt,
+      modelConfig: dto.modelConfig,
+    });
+    return { images };
+  }
+
   @Get('health')
+  @Public()
   healthCheck() {
     return { status: 'OK', timestamp: new Date().toISOString() };
   }

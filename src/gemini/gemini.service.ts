@@ -58,6 +58,14 @@ export class GeminiService {
     return closest.name;
   }
 
+  private async getImageDimensions(sourceImage: SourceImageDto): Promise<{width: number, height: number}> {
+    return new Promise((resolve, reject) => {
+      // For backend, we'll use a simple approach - return default dimensions
+      // In a real implementation, you might want to use a library like sharp or jimp
+      resolve({ width: 1024, height: 1024 }); // Fallback
+    });
+  }
+
   async describeInteriorImage(sourceImage: SourceImageDto): Promise<string> {
     const engineeredPrompt =
       "Analyze the provided image of a room. Your response must be a concise prompt in Vietnamese, suitable for regenerating a photorealistic version of the image. The prompt must start with the exact phrase: 'tạo ảnh chụp thực tế của căn phòng...'. Following that phrase, briefly describe the room's key materials and lighting to achieve a realistic photographic look. Keep the description short and focused.";
@@ -467,8 +475,9 @@ export class GeminiService {
       | 'zoom-in'
       | 'zoom-out';
     magnitude: number;
+    modelConfig?: { usePro: boolean; resolution: '1K' | '2K' | '4K' };
   }): Promise<string | null> {
-    const { sourceImage, moveType, magnitude } = params;
+    const { sourceImage, moveType, magnitude, modelConfig = { usePro: false, resolution: '2K' } } = params;
 
     const magnitudeText =
       {
@@ -515,6 +524,8 @@ export class GeminiService {
       count: 1,
       aspectRatio: 'Auto',
       useRawPrompt: true,
+      modelTier: modelConfig.usePro ? 'pro' : 'free',
+      quality: modelConfig.resolution,
     });
 
     return images.length > 0 ? images[0] : null;
@@ -657,5 +668,271 @@ export class GeminiService {
       );
       throw new Error('The AI returned an invalid response format.');
     }
+  }
+
+  async mergeFurniture(params: {
+    roomImage: SourceImageDto;
+    furnitureImage: SourceImageDto;
+    prompt: string;
+    modelConfig?: { usePro: boolean; resolution: '1K' | '2K' | '4K' };
+  }): Promise<string | null> {
+    const { roomImage, furnitureImage, prompt, modelConfig = { usePro: false, resolution: '2K' } } = params;
+    
+    const engineeredPrompt = `You are an expert interior designer. I have two images: 1) An empty room, and 2) A piece of furniture or a set of furniture. Your task is to realistically place the furniture from the second image into the empty room in the first image. 
+    User instruction: "${prompt}".
+    Ensure the perspective, lighting, shadows, and scale are perfectly matched to the room. The result must be a photorealistic interior photograph.`;
+    
+    const results = await this.generateImages({
+      sourceImage: roomImage,
+      prompt: engineeredPrompt,
+      renderType: 'interior',
+      count: 1,
+      aspectRatio: 'Auto',
+      referenceImage: furnitureImage,
+      useRawPrompt: true,
+      modelTier: modelConfig.usePro ? 'pro' : 'free',
+      quality: modelConfig.resolution,
+    });
+    
+    return results.length > 0 ? results[0] : null;
+  }
+
+  async changeMaterial(params: {
+    sourceImage: SourceImageDto;
+    referenceImage?: SourceImageDto | null;
+    prompt: string;
+    modelConfig?: { usePro: boolean; resolution: '1K' | '2K' | '4K' };
+  }): Promise<string | null> {
+    const { sourceImage, referenceImage, prompt, modelConfig = { usePro: false, resolution: '2K' } } = params;
+    
+    const engineeredPrompt = `You are an expert architectural visualizer. Your task is to modify the materials or colors in the provided image based on the user's request.
+     User instruction: "${prompt}".
+     Keep the geometry, lighting, and composition exactly the same. Only change the surface materials/colors as requested. The result must be photorealistic.`;
+     
+    const results = await this.generateImages({
+      sourceImage,
+      prompt: engineeredPrompt,
+      renderType: 'exterior',
+      count: 1,
+      aspectRatio: 'Auto',
+      referenceImage: referenceImage || null,
+      useRawPrompt: true,
+      modelTier: modelConfig.usePro ? 'pro' : 'free',
+      quality: modelConfig.resolution,
+    });
+    
+    return results.length > 0 ? results[0] : null;
+  }
+
+  async replaceModelInImage(params: {
+    sourceImage: SourceImageDto;
+    referenceImage: SourceImageDto;
+    prompt: string;
+    modelConfig?: { usePro: boolean; resolution: '1K' | '2K' | '4K' };
+  }): Promise<string | null> {
+    const { sourceImage, referenceImage, prompt, modelConfig = { usePro: false, resolution: '2K' } } = params;
+    
+    const engineeredPrompt = `You are an expert image editor. I have two images: 
+    1) A source image containing a scene.
+    2) A reference image containing a specific object/model.
+    
+    Your task is to REPLACE an object in the source image with the object provided in the reference image.
+    User instruction on what to replace: "${prompt}".
+    
+    Crucial Instructions:
+    - Identify the object in the source image that matches the user's description.
+    - Remove it and realisticially place the object from the reference image in its exact position.
+    - Match the perspective, scale, lighting, and shadows of the original scene perfectly.
+    - The new object must look like it belongs in the photo naturally.`;
+
+    const results = await this.generateImages({
+      sourceImage,
+      prompt: engineeredPrompt,
+      renderType: 'exterior',
+      count: 1,
+      aspectRatio: 'Auto',
+      referenceImage,
+      useRawPrompt: true,
+      modelTier: modelConfig.usePro ? 'pro' : 'free',
+      quality: modelConfig.resolution,
+    });
+    
+    return results.length > 0 ? results[0] : null;
+  }
+
+  async insertBuildingIntoSite(params: {
+    siteImage: SourceImageDto;
+    buildingImage: SourceImageDto;
+    prompt: string;
+    modelConfig?: { usePro: boolean; resolution: '1K' | '2K' | '4K' };
+  }): Promise<string | null> {
+    const { siteImage, buildingImage, prompt, modelConfig = { usePro: false, resolution: '2K' } } = params;
+    
+    const engineeredPrompt = `You are an expert architectural visualizer. I have two images: 1) A site photo (current state), and 2) A photo or render of a building/house.
+    Your task is to realistically insert the building from the second image into the site shown in the first image.
+    User instruction: "${prompt}".
+    Ensure the perspective, scale, lighting, and shadows match the site environment perfectly. The result must look like a real photo taken at the site.`;
+
+    const results = await this.generateImages({
+      sourceImage: siteImage,
+      prompt: engineeredPrompt,
+      renderType: 'exterior',
+      count: 1,
+      aspectRatio: 'Auto',
+      referenceImage: buildingImage,
+      useRawPrompt: true,
+      modelTier: modelConfig.usePro ? 'pro' : 'free',
+      quality: modelConfig.resolution,
+    });
+    
+    return results.length > 0 ? results[0] : null;
+  }
+
+  async generatePerspectivePrompts(sourceImage: SourceImageDto): Promise<{
+    trungCanh: string[];
+    canCanh: string[];
+    noiThat: string[];
+  }> {
+    const engineeredPrompt = `Analyze the provided architectural image. I want to generate more views of this project to create a complete set of visualizations. Suggest 3 sets of prompts for:
+    1. "trungCanh": 5 Medium shots (e.g., viewing from the gate, from the garden, 3/4 view).
+    2. "canCanh": 15 Artistic/Close-up shots (e.g., details of materials, balcony, window, architectural features, lighting effects).
+    3. "noiThat": 10 Interior shots that would match this building's style (e.g., view from living room looking out, bedroom, kitchen).
+    
+    Return a VALID JSON object with keys "trungCanh", "canCanh", "noiThat". Each key must have an array of descriptive prompts in Vietnamese matching the requested counts. Do not use Markdown code blocks.`;
+
+    const response = await this.ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: {
+        parts: [
+          { inlineData: { data: sourceImage.base64, mimeType: sourceImage.mimeType } },
+          { text: engineeredPrompt },
+        ],
+      },
+      config: {
+        responseMimeType: "application/json",
+      }
+    });
+    
+    try {
+      const jsonText = response.text ? response.text.trim() : "{}";
+      const cleanJson = jsonText.replace(/```json|```/g, '');
+      const parsed = JSON.parse(cleanJson);
+      return {
+        trungCanh: parsed.trungCanh || [],
+        canCanh: parsed.canCanh || [],
+        noiThat: parsed.noiThat || [],
+      };
+    } catch(e) {
+      this.logger.error("Failed to parse prompts JSON", e);
+      return { trungCanh: [], canCanh: [], noiThat: [] };
+    }
+  }
+
+  async addCharacterToScene(params: {
+    sceneImage: SourceImageDto;
+    characterImage: SourceImageDto;
+    prompt: string;
+    modelConfig?: { usePro: boolean; resolution: '1K' | '2K' | '4K' };
+  }): Promise<string | null> {
+    const { sceneImage, characterImage, prompt, modelConfig = { usePro: false, resolution: '2K' } } = params;
+    
+    const engineeredPrompt = `You are an expert image editor. I have a scene image (1st image) and a character image (2nd image).
+     Your task is to realisticially place the character from the 2nd image into the scene of the 1st image.
+     Context/Action: "${prompt}".
+     Adjust the character's lighting, shadow, and perspective to match the scene perfectly. The output must be photorealistic.`;
+
+    const results = await this.generateImages({
+      sourceImage: sceneImage,
+      prompt: engineeredPrompt,
+      renderType: 'exterior',
+      count: 1,
+      aspectRatio: 'Auto',
+      referenceImage: characterImage,
+      useRawPrompt: true,
+      modelTier: modelConfig.usePro ? 'pro' : 'free',
+      quality: modelConfig.resolution,
+    });
+    
+    return results.length > 0 ? results[0] : null;
+  }
+
+  async analyzeFloorplan(params: {
+    sourceImage: SourceImageDto;
+    roomType: string;
+    roomStyle: string;
+  }): Promise<string> {
+    const { sourceImage, roomType, roomStyle } = params;
+    
+    const prompt = `Đóng vai kiến trúc sư, hãy phân tích mặt bằng này để viết prompt render 3D thật TỐI ƯU và NGẮN GỌN.
+    Thông tin: Phòng "${roomType}", phong cách "${roomStyle}".
+    
+    Yêu cầu phân tích:
+    1. Xác định vị trí Cửa Đi và Cửa Sổ (quan trọng để ánh sáng tự nhiên đi vào).
+    2. Mô tả vị trí sắp xếp các đồ nội thất chính (Layout) đúng theo hình vẽ.
+    3. Chỉ định vật liệu và màu sắc chủ đạo ở mức cơ bản, đúng phong cách (không cần mô tả hoa mỹ).
+    
+    Kết quả trả về là một đoạn văn mô tả liền mạch bằng tiếng Việt, không dùng gạch đầu dòng. KHÔNG bắt đầu bằng cụm từ cố định, hãy mô tả ngay vào nội dung.`;
+
+    const response = await this.ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: {
+        parts: [
+          { inlineData: { data: sourceImage.base64, mimeType: sourceImage.mimeType } },
+          { text: prompt },
+        ],
+      },
+    });
+
+    return response.text || "";
+  }
+
+  async analyzeMasterplan(sourceImage: SourceImageDto): Promise<string> {
+    const prompt = `Đóng vai kiến trúc sư quy hoạch, hãy phân tích bản vẽ mặt bằng tổng thể (masterplan) này để viết prompt render 3D. 
+    Yêu cầu:
+    1. Viết một đoạn mô tả tổng quan về bối cảnh, môi trường và không gian.
+    2. Liệt kê chi tiết các phân khu chức năng chính có trong bản vẽ. Bắt buộc sử dụng gạch đầu dòng (-) cho mỗi phân khu và xuống dòng rõ ràng (ví dụ: - Khu nhà ở...).
+    Văn phong chuyên nghiệp, tập trung vào hình khối và không gian kiến trúc.
+    Kết quả bắt đầu bằng: "Ảnh phối cảnh tổng thể..."`;
+
+    const response = await this.ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: {
+        parts: [
+          { inlineData: { data: sourceImage.base64, mimeType: sourceImage.mimeType } },
+          { text: prompt },
+        ],
+      },
+    });
+
+    return response.text || "";
+  }
+
+  async colorizeFloorplan(params: {
+    sourceImage: SourceImageDto;
+    stylePrompt: string;
+    modelConfig?: { usePro: boolean; resolution: '1K' | '2K' | '4K' };
+  }): Promise<string[]> {
+    const { sourceImage, stylePrompt, modelConfig = { usePro: false, resolution: '2K' } } = params;
+    
+    const prompt = `You are an expert architectural illustrator. I have a 2D floorplan drawing (lines, black and white). 
+    Your task is to colorize this floorplan based on the following style: "${stylePrompt}".
+    
+    CRITICAL INSTRUCTIONS:
+    - You MUST maintain the EXACT layout, lines, and structure of the original floorplan. Do NOT add or remove walls/furniture.
+    - Viewpoint: Top-down 2D.
+    - Apply realistic or artistic textures to floors (wood, tile, carpet) and furniture.
+    - Add shadows to give depth (ambient occlusion) but keep it a 2D plan.
+    - The output should be a high-quality colored presentation floorplan.`;
+
+    return await this.generateImages({
+      sourceImage,
+      prompt,
+      renderType: 'floorplan',
+      count: 2,
+      aspectRatio: 'Auto',
+      useRawPrompt: true,
+      modelTier: modelConfig.usePro ? 'pro' : 'free',
+      quality: modelConfig.resolution,
+    });
   }
 }
