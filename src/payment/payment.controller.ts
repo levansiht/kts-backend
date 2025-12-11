@@ -9,6 +9,7 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  Headers,
 } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -16,7 +17,11 @@ import { Public } from '../auth/decorators/public.decorator';
 import { ResponseHelper } from '../common/helpers/response.helper';
 import { ApiResponse } from '../common/interfaces/response.interface';
 import { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
-import { CreateDepositDto, SepayWebhookDto } from './dto/payment.dto';
+import {
+  CreateDepositDto,
+  SepayWebhookDto,
+  SepayIpnDto,
+} from './dto/payment.dto';
 
 @Controller('api/payment')
 export class PaymentController {
@@ -43,9 +48,85 @@ export class PaymentController {
   @HttpCode(HttpStatus.OK)
   async handleSepayWebhook(
     @Body() webhookDto: SepayWebhookDto,
+    @Headers('x-sepay-signature') signature?: string,
   ): Promise<ApiResponse> {
-    await this.paymentService.handleSepayWebhook(webhookDto);
+    await this.paymentService.handleSepayWebhook(webhookDto, signature);
     return ResponseHelper.success(null, 'Webhook processed successfully');
+  }
+
+  /**
+   * Endpoint IPN để nhận thông báo thanh toán từ Sepay
+   */
+  @Post('ipn')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  async handleSepayIpn(@Body() ipnDto: SepayIpnDto): Promise<ApiResponse> {
+    await this.paymentService.handleSepayIpn(ipnDto);
+    return ResponseHelper.success(null, 'IPN processed successfully');
+  }
+
+  /**
+   * Callback endpoint khi thanh toán thành công
+   */
+  @Get('success')
+  @Public()
+  async handlePaymentSuccess(
+    @Query('order_id') orderId?: string,
+    @Query('payment') payment?: string,
+  ): Promise<ApiResponse> {
+    // Có thể redirect về frontend hoặc trả về thông báo
+    const frontendUrl =
+      process.env.FRONTEND_URL || 'http://localhost:3000';
+    return ResponseHelper.success(
+      {
+        message: 'Payment successful',
+        orderId,
+        redirectUrl: `${frontendUrl}/payment/success?order_id=${orderId}`,
+      },
+      'Payment completed successfully',
+    );
+  }
+
+  /**
+   * Callback endpoint khi thanh toán thất bại
+   */
+  @Get('error')
+  @Public()
+  async handlePaymentError(
+    @Query('order_id') orderId?: string,
+    @Query('payment') payment?: string,
+  ): Promise<ApiResponse> {
+    const frontendUrl =
+      process.env.FRONTEND_URL || 'http://localhost:3000';
+    return ResponseHelper.success(
+      {
+        message: 'Payment failed',
+        orderId,
+        redirectUrl: `${frontendUrl}/payment/error?order_id=${orderId}`,
+      },
+      'Payment failed',
+    );
+  }
+
+  /**
+   * Callback endpoint khi người dùng hủy thanh toán
+   */
+  @Get('cancel')
+  @Public()
+  async handlePaymentCancel(
+    @Query('order_id') orderId?: string,
+    @Query('payment') payment?: string,
+  ): Promise<ApiResponse> {
+    const frontendUrl =
+      process.env.FRONTEND_URL || 'http://localhost:3000';
+    return ResponseHelper.success(
+      {
+        message: 'Payment cancelled',
+        orderId,
+        redirectUrl: `${frontendUrl}/payment/cancel?order_id=${orderId}`,
+      },
+      'Payment cancelled by user',
+    );
   }
 
   @Get('transactions')

@@ -20,10 +20,10 @@ export class User {
   @Exclude()
   password!: string;
 
-  @Column({ length: 100, nullable: true })
+  @Column({ type: 'varchar', length: 100, nullable: true })
   firstName!: string | null;
 
-  @Column({ length: 100, nullable: true })
+  @Column({ type: 'varchar', length: 100, nullable: true })
   lastName!: string | null;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })

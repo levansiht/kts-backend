@@ -30,8 +30,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     // Return user object that will be attached to request.user
+    // Must include 'sub' to match AuthenticatedRequest interface
     return {
-      id: user.id,
+      sub: user.id, // user id for compatibility with AuthenticatedRequest
+      id: user.id, // keep for backward compatibility
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,

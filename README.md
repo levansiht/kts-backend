@@ -249,11 +249,17 @@ GEMINI_API_KEY=your-gemini-api-key
 # CORS
 CORS_ORIGIN=http://localhost:3000
 
-# Sepay (Optional)
-SEPAY_API_KEY=
-SEPAY_API_SECRET=
-SEPAY_ACCOUNT_NUMBER=
-SEPAY_WEBHOOK_SECRET=
+# Sepay (Optional - for payment integration)
+# Lấy từ: https://developer.sepay.vn → Cấu hình Công ty → API Access
+SEPAY_API_KEY=your-api-key-here
+SEPAY_API_SECRET=your-api-secret-here
+SEPAY_ACCOUNT_NUMBER=your-sepay-account-number
+SEPAY_MERCHANT_ID=your-merchant-id-here
+SEPAY_WEBHOOK_SECRET=your-webhook-secret-here
+# API Base URL (mặc định: https://api.sepay.vn/v1)
+SEPAY_API_URL=https://api.sepay.vn/v1
+# Frontend URL for payment redirects
+FRONTEND_URL=http://localhost:3000
 ```
 
 ## 🔒 Security
